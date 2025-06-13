@@ -1,4 +1,4 @@
-package org.example;
+package org.example.Procedure;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -13,25 +13,39 @@ import javafx.scene.media.AudioClip;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-public class AlarmClock extends Application {
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
-    private final ClockLogic logic = new ClockLogic();
-    private final Label labelTime = new Label();
-    private final Label labelAlarm = new Label();
-    private final Label labelMode = new Label("Mode: Clock");
+public class ProcedureClock extends Application {
 
-    private final Button buttonH = new Button("H+");
-    private final Button buttonM = new Button("M+");
-    private final Button buttonHMinus = new Button("H-");
-    private final Button buttonMMinus = new Button("M-");
-    private final Button buttonA = new Button("A");
+    static int alarmHour = 0;
+    static int alarmMinute = 0;
+    static boolean alarmMode = false;
 
-    private final AudioClip sound = new AudioClip(getClass().getResource("/pirate.wav").toExternalForm());
-    private final Image backgroundImage = new Image(getClass().getResource("/pirate.jpg").toExternalForm());
-    private final ImageView pirateBackground = new ImageView(backgroundImage);
+    static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+
+    static Label labelTime = new Label();
+    static Label labelAlarm = new Label();
+    static Label labelMode = new Label("Mode: Clock");
+    static Button buttonH = new Button("H+");
+    static Button buttonM = new Button("M+");
+    static Button buttonHMinus = new Button("H-");
+    static Button buttonMMinus = new Button("M-");
+    static Button buttonA = new Button("A");
+
+    static AudioClip sound;
+    static ImageView pirateBackground;
 
     @Override
     public void start(Stage stage) {
+        sound = new AudioClip(getClass().getResource("/pirate.wav").toExternalForm());
+        Image backgroundImage = new Image(getClass().getResource("/pirate.jpg").toExternalForm());
+        pirateBackground = new ImageView(backgroundImage);
+        pirateBackground.setFitWidth(400);
+        pirateBackground.setFitHeight(300);
+        pirateBackground.setPreserveRatio(false);
+        pirateBackground.setVisible(false);
+
         VBox content = new VBox(10);
         content.setAlignment(Pos.CENTER);
 
@@ -53,41 +67,43 @@ public class AlarmClock extends Application {
         buttonMMinus.setStyle("-fx-font-size: 16px; -fx-pref-width: 60px;");
         buttonA.setStyle("-fx-font-size: 16px; -fx-pref-width: 60px;");
 
-        pirateBackground.setFitWidth(400);
-        pirateBackground.setFitHeight(300);
-        pirateBackground.setPreserveRatio(false);
-        pirateBackground.setVisible(false);
-
         StackPane root = new StackPane(pirateBackground, content);
 
         buttonH.setOnAction(e -> {
-            logic.increaseAlarmHour();
-            updateDisplay();
+            if (alarmMode) {
+                alarmHour = (alarmHour + 1) % 24;
+                updateDisplay();
+            }
         });
 
         buttonM.setOnAction(e -> {
-            logic.increaseAlarmMinute();
-            updateDisplay();
+            if (alarmMode) {
+                alarmMinute = (alarmMinute + 1) % 60;
+                updateDisplay();
+            }
         });
 
         buttonHMinus.setOnAction(e -> {
-            logic.decreaseAlarmHour();
-            updateDisplay();
+            if (alarmMode) {
+                alarmHour = (alarmHour + 23) % 24;
+                updateDisplay();
+            }
         });
 
         buttonMMinus.setOnAction(e -> {
-            logic.decreaseAlarmMinute();
-            updateDisplay();
+            if (alarmMode) {
+                alarmMinute = (alarmMinute + 59) % 60;
+                updateDisplay();
+            }
         });
 
         buttonA.setOnAction(e -> {
-            logic.toggleAlarmMode();
+            alarmMode = !alarmMode;
             updateDisplay();
         });
 
         Timeline timer = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
-            logic.getCurrentTime();
-            if (logic.checkAlarm()) {
+            if (checkAlarm()) {
                 pirateBackground.setVisible(true);
                 sound.play();
                 showAlert("Alarm!", "It's time for pirates, Yo-ho-ho!");
@@ -106,11 +122,11 @@ public class AlarmClock extends Application {
         stage.show();
     }
 
-    private void updateDisplay() {
-        labelTime.setText("Current: " + logic.getCurrentTime());
+    static void updateDisplay() {
+        labelTime.setText("Current: " + LocalTime.now().format(TIME_FORMATTER));
 
-        if (logic.isAlarmOn()) {
-            labelAlarm.setText("Alarm: " + logic.getAlarmTime());
+        if (alarmMode) {
+            labelAlarm.setText("Alarm: " + String.format("%02d:%02d", alarmHour, alarmMinute));
             labelMode.setText("Mode: Alarm");
             labelAlarm.setVisible(true);
             buttonH.setDisable(false);
@@ -128,13 +144,19 @@ public class AlarmClock extends Application {
         }
     }
 
-    private void showAlert(String title, String message) {
+    static boolean checkAlarm() {
+        if (!alarmMode) return false;
+        LocalTime now = LocalTime.now();
+        return now.getHour() == alarmHour && now.getMinute() == alarmMinute && now.getSecond() == 0;
+    }
+
+    static void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION, message);
         alert.setHeaderText(null);
         alert.setTitle(title);
 
         alert.setOnHidden(e -> {
-            logic.setAlarmMode(false);
+            alarmMode = false;
             pirateBackground.setVisible(false);
             sound.stop();
             updateDisplay();
@@ -142,7 +164,6 @@ public class AlarmClock extends Application {
 
         alert.show();
     }
-
 
     public static void main(String[] args) {
         launch(args);

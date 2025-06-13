@@ -27,5 +27,6 @@ javafx {
 
 
 application {
-    mainClass.set("your.package.MainApp") // Замени на путь к своему классу
+    mainClass.set("org.example.OOP.Main") // основной по умолчанию
 }
+
